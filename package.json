@@ -1,0 +1,30 @@
+{
+    "author": "jleuker@gmx.net",
+    "dependencies": {},
+    "keywords": [],
+    "name": "pulse-alert",
+    "pebble": {
+        "capabilities": [
+            "health"
+        ],
+        "displayName": "Pulse Alert",
+        "enableMultiJS": true,
+        "messageKeys": [],
+        "projectType": "native",
+        "resources": {
+            "media": []
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "aplite",
+            "basalt",
+            "chalk",
+            "diorite"
+        ],
+        "uuid": "5639d94f-36fa-40fd-bcdb-c421a80a2067",
+        "watchapp": {
+            "watchface": false
+        }
+    },
+    "version": "1.0.0"
+}
