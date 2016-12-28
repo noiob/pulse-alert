@@ -31,9 +31,9 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
   if (threshold_t) {
     settings.Threshold = threshold_t->value->int32;
   }
-  
+
   bool success = true;
-  
+
   // Override Frequency
   Tuple *override_freq_t = dict_find(iter, MESSAGE_KEY_OverrideFreq);
   if (override_freq_t) {
@@ -45,7 +45,7 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
       success = health_service_set_heart_rate_sample_period(settings.Frequency);
     }
   }
-  
+
   // Frequency
   Tuple *frequency_t = dict_find(iter, MESSAGE_KEY_Frequency);
   if (frequency_t) {
@@ -54,33 +54,46 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
       success = health_service_set_heart_rate_sample_period(settings.Frequency);
     }
   }
-  
+
   if (!success) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Could not set sampling period");
   }
-  
+
   //don't forget to save!
   prv_save_settings();
 }
 
+static void prv_on_health_data(HealthEventType type, void *context) {
+  // If the update was from the Heart Rate Monitor, query it
+  if (type == HealthEventHeartRateUpdate) {
+    HealthValue value = health_service_peek_current_value(HealthMetricHeartRateBPM);
+    // Check the heart rate
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "current heart rate: %lu", (uint32_t) value);
+
+    static char s_hrm_buffer[8];
+    snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu BPM", (uint32_t) value);
+    text_layer_set_text(s_text_layer, s_hrm_buffer);
+  }
+}
+
 static void init(void) {
   prv_load_settings();
-  
+
   // Create a window and get information about the window
   s_window = window_create();
   Layer *window_layer = window_get_root_layer(s_window);
   GRect bounds = layer_get_bounds(window_layer);
-  
+
   // Create a text layer
   s_text_layer = text_layer_create(bounds);
-  
+
   //custom vibe pattern to really catch the user's attention
   static const uint32_t const segments[] = { 100, 100, 100, 100, 100, 100, 800 };
   VibePattern pat = {
     .durations = segments,
     .num_segments = ARRAY_LENGTH(segments),
   };
-  
+
   // Launch the background worker
   AppWorkerResult result = app_worker_launch();
   if (result == APP_WORKER_RESULT_NO_WORKER) {
@@ -90,13 +103,16 @@ static void init(void) {
     HealthValue value = health_service_peek_current_value(HealthMetricHeartRateBPM);
     // Check the heart rate
     APP_LOG(APP_LOG_LEVEL_DEBUG, "current heart rate: %lu", (uint32_t) value);
-    
+
     static char s_hrm_buffer[8];
     snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu BPM", (uint32_t) value);
     text_layer_set_text(s_text_layer, s_hrm_buffer);
     if (value > settings.Threshold) {
       vibes_enqueue_custom_pattern(pat);
     }
+
+    // Subscribe to health event handler
+    health_service_events_subscribe(prv_on_health_data, NULL);
   }
 
   // Set the font and text alignment
@@ -114,7 +130,7 @@ static void init(void) {
 
   // App Logging!
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Just pushed a window!");
-  
+
   // Listen for AppMessages
   app_message_register_inbox_received(prv_inbox_received_handler);
   app_message_open(128, 128);
@@ -126,6 +142,9 @@ static void deinit(void) {
 
   // Destroy the window
   window_destroy(s_window);
+
+  //unsubscribe from healt data
+  health_service_events_unsubscribe();
 }
 
 int main(void) {
