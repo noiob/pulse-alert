@@ -1,4 +1,4 @@
-#pragma once
+#include <pebble.h>
 
 #define SETTINGS_KEY 1
 
@@ -11,3 +11,6 @@ typedef struct ClaySettings {
 
 static void prv_default_settings();
 static void prv_load_settings();
+static void prv_save_settings();
+static void init();
+static void deinit();

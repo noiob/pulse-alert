@@ -1,9 +1,71 @@
 #include <pebble.h>
+#include "app.h"
 
 static Window *s_window;
 static TextLayer *s_text_layer;
+ClaySettings settings;
+
+// Initialize the default settings
+static void prv_default_settings() {
+  settings.Threshold = 130;
+  settings.OverrideFreq = false;
+  settings.Frequency = 300;
+}
+
+// Read settings from persistent storage
+static void prv_load_settings() {
+  // Load the default settings
+  prv_default_settings();
+  // Read settings from persistent storage, if they exist
+  persist_read_data(SETTINGS_KEY, &settings, sizeof(settings));
+}
+
+// Save the settings to persistent storage
+static void prv_save_settings() {
+  persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));
+}
+
+static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) {
+  // Threshold
+  Tuple *threshold_t = dict_find(iter, MESSAGE_KEY_Threshold);
+  if (threshold_t) {
+    settings.Threshold = threshold_t->value->int32;
+  }
+  
+  bool success = true;
+  
+  // Override Frequency
+  Tuple *override_freq_t = dict_find(iter, MESSAGE_KEY_OverrideFreq);
+  if (override_freq_t) {
+    settings.OverrideFreq = override_freq_t->value->int32 == 1;
+    if (!settings.OverrideFreq) {
+      success = health_service_set_heart_rate_sample_period(0);
+    }
+    else {
+      success = health_service_set_heart_rate_sample_period(settings.Frequency);
+    }
+  }
+  
+  // Frequency
+  Tuple *frequency_t = dict_find(iter, MESSAGE_KEY_Frequency);
+  if (frequency_t) {
+    settings.Frequency = frequency_t->value->int32;
+    if (settings.OverrideFreq) {
+      success = health_service_set_heart_rate_sample_period(settings.Frequency);
+    }
+  }
+  
+  if (!success) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Could not set sampling period");
+  }
+  
+  //don't forget to save!
+  prv_save_settings();
+}
 
 static void init(void) {
+  prv_load_settings();
+  
   // Create a window and get information about the window
   s_window = window_create();
   Layer *window_layer = window_get_root_layer(s_window);
@@ -32,7 +94,7 @@ static void init(void) {
     static char s_hrm_buffer[8];
     snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu BPM", (uint32_t) value);
     text_layer_set_text(s_text_layer, s_hrm_buffer);
-    if (value > 130) {
+    if (value > settings.Threshold) {
       vibes_enqueue_custom_pattern(pat);
     }
   }
@@ -52,6 +114,10 @@ static void init(void) {
 
   // App Logging!
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Just pushed a window!");
+  
+  // Listen for AppMessages
+  app_message_register_inbox_received(prv_inbox_received_handler);
+  app_message_open(128, 128);
 }
 
 static void deinit(void) {

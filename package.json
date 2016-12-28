@@ -1,15 +1,22 @@
 {
     "author": "jleuker@gmx.net",
-    "dependencies": {},
+    "dependencies": {
+        "pebble-clay": "^1.0.3"
+    },
     "keywords": [],
     "name": "pulse-alert",
     "pebble": {
         "capabilities": [
+            "configurable",
             "health"
         ],
         "displayName": "Pulse Alert",
         "enableMultiJS": true,
-        "messageKeys": [],
+        "messageKeys": [
+            "Threshold",
+            "OverrideFreq",
+            "Frequency"
+        ],
         "projectType": "native",
         "resources": {
             "media": []
