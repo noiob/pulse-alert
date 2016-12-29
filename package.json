@@ -19,7 +19,26 @@
         ],
         "projectType": "native",
         "resources": {
-            "media": []
+            "media": [
+                {
+                    "file": "images/gear.png",
+                    "name": "GEAR",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/minus.png",
+                    "name": "MINUS",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/plus.png",
+                    "name": "PLUS",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                }
+            ]
         },
         "sdkVersion": "3",
         "targetPlatforms": [
@@ -33,5 +52,5 @@
             "watchface": false
         }
     },
-    "version": "1.1.0"
+    "version": "1.2.0"
 }

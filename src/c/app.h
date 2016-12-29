@@ -14,3 +14,4 @@ static void prv_load_settings();
 static void prv_save_settings();
 static void init();
 static void deinit();
+static void update_threshold_hr_layer();
