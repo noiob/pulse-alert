@@ -21,6 +21,30 @@
         "resources": {
             "media": [
                 {
+                    "file": "images/accept.png",
+                    "name": "ACCEPT",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/zzz.png",
+                    "name": "ZZZ",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/pencil.png",
+                    "name": "PENCIL",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/heart.png",
+                    "name": "HEART",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
                     "file": "images/gear.png",
                     "name": "GEAR",
                     "targetPlatforms": null,

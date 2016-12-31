@@ -2,9 +2,23 @@
 #include "app.h"
 
 static Window *s_window;
-static TextLayer *s_live_hr_layer, *s_threshold_hr_layer, *s_threshold_label_layer;
-ActionBarLayer *s_action_bar;
-static GBitmap *b_plus_bitmap, *b_minus_bitmap;
+static GBitmap *s_res_zzz;
+static GBitmap *s_res_gear;
+static GBitmap *s_res_pencil;
+static GBitmap *s_res_plus;
+static GBitmap *s_res_minus;
+static GBitmap *s_res_accept;
+static GFont s_res_leco_42_numbers;
+static GFont s_res_gothic_14;
+static GBitmap *s_res_heart;
+static GFont s_res_gothic_28;
+static ActionBarLayer *s_actionbarlayer_1;
+static TextLayer *s_hr_live_label;
+static TextLayer *s_hr_live;
+static TextLayer *s_alert_label;
+static BitmapLayer *s_heart_icon;
+static TextLayer *s_alert_threshold;
+static Layer *s_graph;
 ClaySettings settings;
 
 // Initialize the default settings
@@ -30,7 +44,7 @@ static void prv_save_settings() {
 static void update_threshold_hr_layer() {
   static char s_threshold_buffer[8];
   snprintf(s_threshold_buffer, sizeof(s_threshold_buffer), "%d BPM", settings.Threshold);
-  text_layer_set_text(s_threshold_hr_layer, s_threshold_buffer);
+  text_layer_set_text(s_alert_threshold, s_threshold_buffer);
   prv_save_settings();
 }
 
@@ -81,9 +95,19 @@ static void prv_on_health_data(HealthEventType type, void *context) {
     APP_LOG(APP_LOG_LEVEL_DEBUG, "current heart rate: %lu", (uint32_t) value);
 
     static char s_hrm_buffer[8];
-    snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu BPM", (uint32_t) value);
-    text_layer_set_text(s_live_hr_layer, s_hrm_buffer);
+    snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu", (uint32_t) value);
+    text_layer_set_text(s_hr_live, s_hrm_buffer);
   }
+}
+
+/*static void snooze_click_handler() {
+}*/
+
+static void edit_click_handler() {
+  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_UP, s_res_plus);
+  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_SELECT, s_res_accept);
+  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_DOWN, s_res_minus);
+  action_bar_layer_set_click_config_provider(s_actionbarlayer_1,edit_click_config_provider);
 }
 
 static void plus_click_handler() {
@@ -100,47 +124,128 @@ static void minus_click_handler() {
   update_threshold_hr_layer();
 }
 
+static void save_click_handler() {
+  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_UP, s_res_zzz);
+  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_SELECT, s_res_gear);
+  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_DOWN, s_res_pencil);
+  action_bar_layer_set_click_config_provider(s_actionbarlayer_1,click_config_provider);
+}
+
 static void click_config_provider(void *context) {
+  //window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) snooze_click_handler);
+  //window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) menu_click_handler);
+  window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) edit_click_handler);
+}
+
+static void edit_click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) plus_click_handler);
-  
+  window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) save_click_handler);
   window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) minus_click_handler);
+}
+
+static void initialise_ui(void) {
+  s_window = window_create();
+  #ifndef PBL_SDK_3
+    window_set_fullscreen(s_window, false);
+  #endif
+  
+  s_res_zzz = gbitmap_create_with_resource(RESOURCE_ID_ZZZ);
+  s_res_gear = gbitmap_create_with_resource(RESOURCE_ID_GEAR);
+  s_res_pencil = gbitmap_create_with_resource(RESOURCE_ID_PENCIL);
+  s_res_plus = gbitmap_create_with_resource(RESOURCE_ID_PLUS);
+  s_res_minus = gbitmap_create_with_resource(RESOURCE_ID_MINUS);
+  s_res_accept = gbitmap_create_with_resource(RESOURCE_ID_ACCEPT);
+  s_res_leco_42_numbers = fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS);
+  s_res_gothic_14 = fonts_get_system_font(FONT_KEY_GOTHIC_14);
+  s_res_heart = gbitmap_create_with_resource(RESOURCE_ID_HEART);
+  s_res_gothic_28 = fonts_get_system_font(FONT_KEY_GOTHIC_28);
+  // s_actionbarlayer_1
+  s_actionbarlayer_1 = action_bar_layer_create();
+  action_bar_layer_add_to_window(s_actionbarlayer_1, s_window);
+  action_bar_layer_set_background_color(s_actionbarlayer_1, GColorBlack);
+  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_UP, s_res_zzz);
+  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_SELECT, s_res_gear);
+  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_DOWN, s_res_pencil);
+  action_bar_layer_set_click_config_provider(s_actionbarlayer_1,click_config_provider);
+  layer_add_child(window_get_root_layer(s_window), (Layer *)s_actionbarlayer_1);
+  
+  // s_hr_live_label
+  s_hr_live_label = text_layer_create(GRect(85, 87, 28, 20));
+  text_layer_set_background_color(s_hr_live_label, GColorClear);
+  text_layer_set_text(s_hr_live_label, "BPM");
+  layer_add_child(window_get_root_layer(s_window), (Layer *)s_hr_live_label);
+  
+  // s_hr_live
+  s_hr_live = text_layer_create(GRect(0, 58, 85, 45));
+  text_layer_set_background_color(s_hr_live, GColorClear);
+  text_layer_set_text_alignment(s_hr_live, GTextAlignmentRight);
+  text_layer_set_font(s_hr_live, s_res_leco_42_numbers);
+  layer_add_child(window_get_root_layer(s_window), (Layer *)s_hr_live);
+  
+  // s_alert_label
+  s_alert_label = text_layer_create(GRect(0, 115, 110, 18));
+  text_layer_set_background_color(s_alert_label, GColorClear);
+  text_layer_set_text(s_alert_label, "ALERT AT");
+  text_layer_set_text_alignment(s_alert_label, GTextAlignmentCenter);
+  text_layer_set_font(s_alert_label, s_res_gothic_14);
+  layer_add_child(window_get_root_layer(s_window), (Layer *)s_alert_label);
+  
+  // s_heart_icon
+  s_heart_icon = bitmap_layer_create(GRect(85, 65, 24, 25));
+  bitmap_layer_set_bitmap(s_heart_icon, s_res_heart);
+  layer_add_child(window_get_root_layer(s_window), (Layer *)s_heart_icon);
+  
+  // s_alert_threshold
+  s_alert_threshold = text_layer_create(GRect(0, 125, 110, 28));
+  text_layer_set_background_color(s_alert_threshold, GColorClear);
+  static char s_threshold_buffer[8];
+  snprintf(s_threshold_buffer, sizeof(s_threshold_buffer), "%d BPM", settings.Threshold);
+  text_layer_set_text(s_alert_threshold, s_threshold_buffer);
+  text_layer_set_text_alignment(s_alert_threshold, GTextAlignmentCenter);
+  text_layer_set_font(s_alert_threshold, s_res_gothic_28);
+  layer_add_child(window_get_root_layer(s_window), (Layer *)s_alert_threshold);
+  
+  // s_graph
+  s_graph = layer_create(GRect(5, 5, 105, 55));
+  layer_add_child(window_get_root_layer(s_window), (Layer *)s_graph);
+}
+
+static void destroy_ui(void) {
+  window_destroy(s_window);
+  action_bar_layer_destroy(s_actionbarlayer_1);
+  text_layer_destroy(s_hr_live_label);
+  text_layer_destroy(s_hr_live);
+  text_layer_destroy(s_alert_label);
+  bitmap_layer_destroy(s_heart_icon);
+  text_layer_destroy(s_alert_threshold);
+  layer_destroy(s_graph);
+  gbitmap_destroy(s_res_zzz);
+  gbitmap_destroy(s_res_gear);
+  gbitmap_destroy(s_res_pencil);
+  gbitmap_destroy(s_res_heart);
+}
+
+static void handle_window_unload(Window* window) {
+  destroy_ui();
+}
+
+void show_main_window(void) {
+  initialise_ui();
+  window_set_window_handlers(s_window, (WindowHandlers) {
+    .unload = handle_window_unload,
+  });
+  window_stack_push(s_window, true);
+}
+
+void hide_main_window(void) {
+  window_stack_remove(s_window, true);
 }
 
 static void init(void) {
   prv_load_settings();
 
-  // Create a window and get information about the window
-  s_window = window_create();
-  Layer *window_layer = window_get_root_layer(s_window);
-  GRect bounds = layer_get_bounds(window_layer);
-
-  // Create the ActionBar
-  s_action_bar = action_bar_layer_create();
-  b_plus_bitmap = gbitmap_create_with_resource(RESOURCE_ID_PLUS);
-  b_minus_bitmap = gbitmap_create_with_resource(RESOURCE_ID_MINUS);
-  action_bar_layer_set_icon_animated(s_action_bar, BUTTON_ID_UP, b_plus_bitmap, true);
-  action_bar_layer_set_icon_animated(s_action_bar, BUTTON_ID_DOWN, b_minus_bitmap, true);
+  show_main_window();
   
-  action_bar_layer_add_to_window(s_action_bar, s_window);
-  
-  action_bar_layer_set_click_config_provider(s_action_bar, click_config_provider);
-  
-  // Create the text layers
-  const GEdgeInsets mid_label_insets = {.top = 122, .right = ACTION_BAR_WIDTH};
-  s_live_hr_layer = text_layer_create(grect_inset(bounds, mid_label_insets));
-  const GEdgeInsets bot_label_insets = {.bottom = 51, .top = 71, .left = 15, .right = ACTION_BAR_WIDTH + 5};
-  s_threshold_hr_layer = text_layer_create(grect_inset(bounds, bot_label_insets));
-  static char s_threshold_buffer[8];
-  snprintf(s_threshold_buffer, sizeof(s_threshold_buffer), "%d BPM", settings.Threshold);
-  text_layer_set_text(s_threshold_hr_layer, s_threshold_buffer);
-  text_layer_set_background_color(s_threshold_hr_layer,GColorBlack);
-  text_layer_set_text_color(s_threshold_hr_layer,GColorWhite);
-  const GEdgeInsets mid_label_2_insets = {.bottom = 51, .top = 51, .left = 15, .right = ACTION_BAR_WIDTH + 5};
-  s_threshold_label_layer = text_layer_create(grect_inset(bounds, mid_label_2_insets));
-  text_layer_set_background_color(s_threshold_label_layer,GColorBlack);
-  text_layer_set_text_color(s_threshold_label_layer,GColorWhite);
-  text_layer_set_text(s_threshold_label_layer, "Alert at:");
-
   //custom vibe pattern to really catch the user's attention
   static const uint32_t segments[] = { 100, 100, 100, 100, 100, 100, 800 };
   VibePattern pat = {
@@ -151,7 +256,7 @@ static void init(void) {
   // Launch the background worker
   AppWorkerResult result = app_worker_launch();
   if (result == APP_WORKER_RESULT_NO_WORKER) {
-    text_layer_set_text(s_live_hr_layer, "Could not launch a worker.");
+    text_layer_set_text(s_alert_label, "Could not launch a worker.");
   }
   else {
     HealthValue value = health_service_peek_current_value(HealthMetricHeartRateBPM);
@@ -160,8 +265,8 @@ static void init(void) {
     
     prv_load_settings();
     static char s_hrm_buffer[8];
-    snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu BPM", (uint32_t) value);
-    text_layer_set_text(s_live_hr_layer, s_hrm_buffer);
+    snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu", (uint32_t) value);
+    text_layer_set_text(s_hr_live, s_hrm_buffer);
     if (value > settings.Threshold) {
       vibes_enqueue_custom_pattern(pat);
     }
@@ -169,28 +274,6 @@ static void init(void) {
     // Subscribe to health event handler
     health_service_events_subscribe(prv_on_health_data, NULL);
   }
-
-  // Set the font and text alignment
-  text_layer_set_font(s_live_hr_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
-  text_layer_set_text_alignment(s_live_hr_layer, GTextAlignmentCenter);
-  text_layer_set_font(s_threshold_label_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18));
-  text_layer_set_text_alignment(s_threshold_label_layer, GTextAlignmentCenter);
-  text_layer_set_font(s_threshold_hr_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
-  text_layer_set_text_alignment(s_threshold_hr_layer, GTextAlignmentCenter);
-  
-
-  // Add the text layer to the window
-  layer_add_child(window_get_root_layer(s_window), text_layer_get_layer(s_live_hr_layer));
-  layer_add_child(window_get_root_layer(s_window), text_layer_get_layer(s_threshold_label_layer));
-  layer_add_child(window_get_root_layer(s_window), text_layer_get_layer(s_threshold_hr_layer));
-
-  // Enable text flow and paging on the text layer, with a slight inset of 10, for round screens
-  text_layer_enable_screen_text_flow_and_paging(s_live_hr_layer, 10);
-  text_layer_enable_screen_text_flow_and_paging(s_threshold_label_layer, 10);
-  text_layer_enable_screen_text_flow_and_paging(s_threshold_hr_layer, 10);
-
-  // Push the window, setting the window animation to 'true'
-  window_stack_push(s_window, true);
 
   // App Logging!
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Just pushed a window!");
@@ -201,18 +284,7 @@ static void init(void) {
 }
 
 static void deinit(void) {
-  // Destroy the text layer
-  text_layer_destroy(s_live_hr_layer);
-  text_layer_destroy(s_threshold_label_layer);
-  text_layer_destroy(s_threshold_hr_layer);
-  
-  // Destroy the ActionBar layer and the icons
-  action_bar_layer_destroy(s_action_bar);
-  gbitmap_destroy(b_plus_bitmap);
-  gbitmap_destroy(b_minus_bitmap);
-
-  // Destroy the window
-  window_destroy(s_window);
+  hide_main_window();
 
   //unsubscribe from healt data
   health_service_events_unsubscribe();
