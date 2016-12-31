@@ -20,12 +20,15 @@ static BitmapLayer *s_heart_icon;
 static TextLayer *s_alert_threshold;
 static StatusBarLayer *s_status_bar;
 static Layer *s_graph;
+static ActionMenu *s_action_menu;
+static ActionMenuLevel *s_action_menu_level;
 ClaySettings settings;
 
 // Initialize the default settings
 static void prv_default_settings() {
   settings.Threshold = 130;
   settings.OverrideFreq = false;
+  settings.BackgroundWorker = false;
   settings.Frequency = 300;
 }
 
@@ -40,6 +43,18 @@ static void prv_load_settings() {
 // Save the settings to persistent storage
 static void prv_save_settings() {
   persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));
+}
+
+static void start_app_worker() {
+  if (app_worker_launch() != APP_WORKER_RESULT_NO_WORKER) {
+    settings.BackgroundWorker = true;
+  }
+}
+
+static void stop_app_worker() {
+  if (app_worker_kill() == APP_WORKER_RESULT_SUCCESS) {
+    settings.BackgroundWorker = false;
+  }
 }
 
 static void update_threshold_hr_layer() {
@@ -104,6 +119,26 @@ static void prv_on_health_data(HealthEventType type, void *context) {
 /*static void snooze_click_handler() {
 }*/
 
+static void menu_click_handler() {
+  s_action_menu_level = action_menu_level_create(1);
+  if (app_worker_is_running()) {
+    action_menu_level_add_action(s_action_menu_level, "Stop worker task", stop_app_worker, NULL);
+  }
+  else {
+    action_menu_level_add_action(s_action_menu_level, "Start worker task", start_app_worker, NULL);
+  }
+  ActionMenuConfig config = (ActionMenuConfig) {
+    .root_level = s_action_menu_level,
+    .colors = {
+      .background = GColorWhite,
+      .foreground = GColorBlack,
+    },
+      .align = ActionMenuAlignCenter
+  };
+  
+  s_action_menu = action_menu_open(&config);
+}
+
 static void edit_click_handler() {
   action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_UP, s_res_plus);
   action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_SELECT, s_res_accept);
@@ -134,7 +169,7 @@ static void save_click_handler() {
 
 static void click_config_provider(void *context) {
   //window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) snooze_click_handler);
-  //window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) menu_click_handler);
+  window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) menu_click_handler);
   window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) edit_click_handler);
 }
 
@@ -160,15 +195,6 @@ static void initialise_ui(void) {
   s_res_gothic_14 = fonts_get_system_font(FONT_KEY_GOTHIC_14);
   s_res_heart = gbitmap_create_with_resource(RESOURCE_ID_HEART);
   s_res_gothic_28 = fonts_get_system_font(FONT_KEY_GOTHIC_28);
-  // s_actionbarlayer_1
-  s_actionbarlayer_1 = action_bar_layer_create();
-  action_bar_layer_add_to_window(s_actionbarlayer_1, s_window);
-  action_bar_layer_set_background_color(s_actionbarlayer_1, GColorBlack);
-  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_UP, s_res_zzz);
-  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_SELECT, s_res_gear);
-  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_DOWN, s_res_pencil);
-  action_bar_layer_set_click_config_provider(s_actionbarlayer_1,click_config_provider);
-  layer_add_child(window_get_root_layer(s_window), (Layer *)s_actionbarlayer_1);
   
   // s_hr_live_label
   s_hr_live_label = text_layer_create(GRect(85, 87, 28, 20));
@@ -210,11 +236,22 @@ static void initialise_ui(void) {
   s_graph = layer_create(GRect(5, 5, 105, 55));
   layer_add_child(window_get_root_layer(s_window), (Layer *)s_graph);
   
-  // Set up the status bar last to ensure it is on top of other Layers
+  // s_status_bar
   s_status_bar = status_bar_layer_create();
+  layer_set_frame(status_bar_layer_get_layer(s_status_bar), GRect(0, 0, layer_get_bounds(window_get_root_layer(s_window)).size.w - ACTION_BAR_WIDTH, STATUS_BAR_LAYER_HEIGHT)); 
   status_bar_layer_set_colors(s_status_bar, GColorWhite, GColorBlack);
   status_bar_layer_set_separator_mode(s_status_bar, StatusBarLayerSeparatorModeDotted);
   layer_add_child(window_get_root_layer(s_window), status_bar_layer_get_layer(s_status_bar));
+  
+  // s_actionbarlayer_1
+  s_actionbarlayer_1 = action_bar_layer_create();
+  action_bar_layer_add_to_window(s_actionbarlayer_1, s_window);
+  action_bar_layer_set_background_color(s_actionbarlayer_1, GColorBlack);
+  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_UP, s_res_zzz);
+  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_SELECT, s_res_gear);
+  action_bar_layer_set_icon(s_actionbarlayer_1, BUTTON_ID_DOWN, s_res_pencil);
+  action_bar_layer_set_click_config_provider(s_actionbarlayer_1,click_config_provider);
+  layer_add_child(window_get_root_layer(s_window), (Layer *)s_actionbarlayer_1);
 }
 
 static void destroy_ui(void) {
@@ -261,26 +298,24 @@ static void init(void) {
   };
 
   // Launch the background worker
-  AppWorkerResult result = app_worker_launch();
-  if (result == APP_WORKER_RESULT_NO_WORKER) {
-    text_layer_set_text(s_alert_label, "Could not launch a worker.");
+  if (settings.BackgroundWorker) {
+    start_app_worker();
   }
-  else {
-    HealthValue value = health_service_peek_current_value(HealthMetricHeartRateBPM);
-    // Check the heart rate
-    APP_LOG(APP_LOG_LEVEL_DEBUG, "current heart rate: %lu", (uint32_t) value);
-    
-    prv_load_settings();
-    static char s_hrm_buffer[8];
-    snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu", (uint32_t) value);
-    text_layer_set_text(s_hr_live, s_hrm_buffer);
-    if (value > settings.Threshold) {
-      vibes_enqueue_custom_pattern(pat);
-    }
+  
+  HealthValue value = health_service_peek_current_value(HealthMetricHeartRateBPM);
+  // Check the heart rate
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "current heart rate: %lu", (uint32_t) value);
 
-    // Subscribe to health event handler
-    health_service_events_subscribe(prv_on_health_data, NULL);
+  prv_load_settings();
+  static char s_hrm_buffer[8];
+  snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu", (uint32_t) value);
+  text_layer_set_text(s_hr_live, s_hrm_buffer);
+  if (value > settings.Threshold) {
+    vibes_enqueue_custom_pattern(pat);
   }
+
+  // Subscribe to health event handler
+  health_service_events_subscribe(prv_on_health_data, NULL);
 
   // App Logging!
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Just pushed a window!");
@@ -292,7 +327,8 @@ static void init(void) {
 
 static void deinit(void) {
   hide_main_window();
-
+  action_menu_hierarchy_destroy(s_action_menu_level, NULL, NULL);
+  
   //unsubscribe from healt data
   health_service_events_unsubscribe();
 }

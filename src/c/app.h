@@ -6,6 +6,7 @@
 typedef struct ClaySettings {
   int16_t Threshold;
   bool OverrideFreq;
+  bool BackgroundWorker;
   uint16_t Frequency;
 } __attribute__((__packed__)) ClaySettings;
 
