@@ -18,6 +18,7 @@ static TextLayer *s_hr_live;
 static TextLayer *s_alert_label;
 static BitmapLayer *s_heart_icon;
 static TextLayer *s_alert_threshold;
+static StatusBarLayer *s_status_bar;
 static Layer *s_graph;
 ClaySettings settings;
 
@@ -208,6 +209,12 @@ static void initialise_ui(void) {
   // s_graph
   s_graph = layer_create(GRect(5, 5, 105, 55));
   layer_add_child(window_get_root_layer(s_window), (Layer *)s_graph);
+  
+  // Set up the status bar last to ensure it is on top of other Layers
+  s_status_bar = status_bar_layer_create();
+  status_bar_layer_set_colors(s_status_bar, GColorWhite, GColorBlack);
+  status_bar_layer_set_separator_mode(s_status_bar, StatusBarLayerSeparatorModeDotted);
+  layer_add_child(window_get_root_layer(s_window), status_bar_layer_get_layer(s_status_bar));
 }
 
 static void destroy_ui(void) {
