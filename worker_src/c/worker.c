@@ -18,6 +18,17 @@ static void prv_load_settings() {
   persist_read_data(SETTINGS_KEY, &settings, sizeof(settings));
 }
 
+// Save the settings to persistent storage
+static void prv_save_settings() {
+  persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));
+}
+
+void snooze(time_t until) {
+  prv_load_settings();
+  settings.SnoozeUntil = until;
+  prv_save_settings();
+}
+
 static void prv_on_health_data(HealthEventType type, void *context) {
   // If the update was from the Heart Rate Monitor, query it
   if (type == HealthEventHeartRateUpdate) {
@@ -25,8 +36,8 @@ static void prv_on_health_data(HealthEventType type, void *context) {
     // Check the heart rate
     APP_LOG(APP_LOG_LEVEL_DEBUG, "current heart rate: %lu", (uint32_t) value);
     prv_load_settings();
-    time_t now = time(NULL);
-    if ((value > settings.Threshold) && (settings.SnoozeUntil - now >= 0)) {
+    if ((value > settings.Threshold) && (time(NULL) - settings.SnoozeUntil >= 0)) {
+      snooze(time(NULL) + SECONDS_PER_MINUTE);
       worker_launch_app();
     }
   }

@@ -9,11 +9,13 @@ static GBitmap *s_res_accept;
 static GBitmap *s_res_minus;
 static GFont s_res_gothic_28_bold;
 static GFont s_res_gothic_28;
+static GFont s_res_gothic_14;
 static ActionBarLayer *s_actionbarlayer;
 static TextLayer *s_hs;
 static TextLayer *s_mins;
 static TextLayer *s_text_h;
 static TextLayer *s_text_min;
+static TextLayer *s_text;
 static StatusBarLayer *s_status_bar;
 int i_h;
 int i_min;
@@ -101,6 +103,7 @@ static void initialise_ui(void) {
   s_res_minus = gbitmap_create_with_resource(RESOURCE_ID_MINUS);
   s_res_gothic_28_bold = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
   s_res_gothic_28 = fonts_get_system_font(FONT_KEY_GOTHIC_28);
+  s_res_gothic_14 = fonts_get_system_font(FONT_KEY_GOTHIC_14);
   // s_actionbarlayer
   s_actionbarlayer = action_bar_layer_create();
   action_bar_layer_add_to_window(s_actionbarlayer, s_window);
@@ -117,6 +120,13 @@ static void initialise_ui(void) {
   
   i_h = 0;
   i_min = 15;
+  
+  // s_text
+  s_text = text_layer_create(GRect(10, 60, 90, 38));
+  text_layer_set_text(s_text, "SUSPEND FOR");
+  text_layer_set_text_alignment(s_text, GTextAlignmentCenter);
+  text_layer_set_font(s_text, s_res_gothic_14);
+  layer_add_child(window_get_root_layer(s_window), (Layer *)s_text);
   
   // s_hs
   s_hs = text_layer_create(GRect(10, 80, 22, 38));

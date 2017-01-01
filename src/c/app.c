@@ -123,6 +123,17 @@ static void prv_on_health_data(HealthEventType type, void *context) {
     static char s_hrm_buffer[8];
     snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu", (uint32_t) value);
     text_layer_set_text(s_hr_live, s_hrm_buffer);
+    if ((value > settings.Threshold) && (time(NULL) - settings.SnoozeUntil >= 0)) {
+      snooze(time(NULL) + SECONDS_PER_MINUTE);
+      
+      //custom vibe pattern to really catch the user's attention
+      static const uint32_t segments[] = { 100, 100, 100, 100, 100, 100, 800 };
+      VibePattern pat = {
+        .durations = segments,
+        .num_segments = ARRAY_LENGTH(segments),
+      };
+      vibes_enqueue_custom_pattern(pat);
+    }
   }
 }
 
@@ -321,7 +332,7 @@ static void init(void) {
   static char s_hrm_buffer[8];
   snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu", (uint32_t) value);
   text_layer_set_text(s_hr_live, s_hrm_buffer);
-  if (value > settings.Threshold) {
+  if ((value > settings.Threshold) && (time(NULL) - settings.SnoozeUntil >= 0)) {
     snooze(time(NULL) + SECONDS_PER_MINUTE);
     vibes_enqueue_custom_pattern(pat);
   }
