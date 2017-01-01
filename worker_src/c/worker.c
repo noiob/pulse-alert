@@ -25,7 +25,8 @@ static void prv_on_health_data(HealthEventType type, void *context) {
     // Check the heart rate
     APP_LOG(APP_LOG_LEVEL_DEBUG, "current heart rate: %lu", (uint32_t) value);
     prv_load_settings();
-    if (value > settings.Threshold) {
+    time_t now = time(NULL);
+    if ((value > settings.Threshold) && (settings.SnoozeUntil - now >= 0)) {
       worker_launch_app();
     }
   }

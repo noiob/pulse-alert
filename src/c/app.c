@@ -1,5 +1,6 @@
 #include <pebble.h>
 #include "app.h"
+#include "snooze_window.h"
 
 static Window *s_window;
 static GBitmap *s_res_zzz;
@@ -30,6 +31,7 @@ static void prv_default_settings() {
   settings.OverrideFreq = false;
   settings.BackgroundWorker = false;
   settings.Frequency = 300;
+  settings.SnoozeUntil = 0;
 }
 
 // Read settings from persistent storage
@@ -43,6 +45,12 @@ static void prv_load_settings() {
 // Save the settings to persistent storage
 static void prv_save_settings() {
   persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));
+}
+
+void snooze(time_t until) {
+  prv_load_settings();
+  settings.SnoozeUntil = until;
+  prv_save_settings();
 }
 
 static void start_app_worker() {
@@ -65,6 +73,8 @@ static void update_threshold_hr_layer() {
 }
 
 static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) {
+  prv_load_settings();
+  
   // Threshold
   Tuple *threshold_t = dict_find(iter, MESSAGE_KEY_Threshold);
   if (threshold_t) {
@@ -116,8 +126,9 @@ static void prv_on_health_data(HealthEventType type, void *context) {
   }
 }
 
-/*static void snooze_click_handler() {
-}*/
+static void snooze_click_handler() {
+  show_snooze_window();
+}
 
 static void menu_click_handler() {
   s_action_menu_level = action_menu_level_create(1);
@@ -168,7 +179,7 @@ static void save_click_handler() {
 }
 
 static void click_config_provider(void *context) {
-  //window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) snooze_click_handler);
+  window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) snooze_click_handler);
   window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) menu_click_handler);
   window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) edit_click_handler);
 }
@@ -311,6 +322,7 @@ static void init(void) {
   snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu", (uint32_t) value);
   text_layer_set_text(s_hr_live, s_hrm_buffer);
   if (value > settings.Threshold) {
+    snooze(time(NULL) + SECONDS_PER_MINUTE);
     vibes_enqueue_custom_pattern(pat);
   }
 

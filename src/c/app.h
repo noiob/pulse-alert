@@ -1,6 +1,12 @@
+#pragma once
+
 #include <pebble.h>
 
 #define SETTINGS_KEY 1
+
+static void prv_default_settings();
+static void prv_load_settings();
+static void prv_save_settings();
 
 // A structure containing our settings
 typedef struct ClaySettings {
@@ -8,11 +14,10 @@ typedef struct ClaySettings {
   bool OverrideFreq;
   bool BackgroundWorker;
   uint16_t Frequency;
+  time_t SnoozeUntil;
 } __attribute__((__packed__)) ClaySettings;
 
-static void prv_default_settings();
-static void prv_load_settings();
-static void prv_save_settings();
+void snooze(time_t until);
 static void init();
 static void deinit();
 static void update_threshold_hr_layer();
