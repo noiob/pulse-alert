@@ -6,5 +6,5 @@ experimental pebble app to alert the user of high pulse readings
 
 - [x] Clay config page
 - [x] In-app config
-- [ ] nicer look, maybe a hr graph?
-- [ ] research how often the HR has to be read
+- [x] nicer look
+- [ ] hr graph
