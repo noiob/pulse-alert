@@ -15,7 +15,8 @@
         "messageKeys": [
             "Threshold",
             "OverrideFreq",
-            "Frequency"
+            "Frequency",
+            "Backoff"
         ],
         "projectType": "native",
         "resources": {
@@ -73,5 +74,5 @@
             "watchface": false
         }
     },
-    "version": "2.0.0"
+    "version": "2.1.0"
 }

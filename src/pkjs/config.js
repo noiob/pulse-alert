@@ -7,19 +7,38 @@ module.exports = [
   {
   "type": "section",
   "items": [
+      {
+      "type": "heading",
+      "defaultValue":"Alert settings"
+      },
+      {
+        "type": "slider",
+        "messageKey": "Threshold",
+        "defaultValue": 130,
+        "label": "Alert at (bpm)",
+        "description": "When your HR monitor readings exceed this value, your Pebble will vibrate and display your current heart rate.",
+        "min": 50,
+        "max": 200,
+        "step": 1
+      },
+      {
+        "type": "slider",
+        "messageKey": "Backoff",
+        "defaultValue": 1,
+        "label": "Backoff after firing the alarm (minutes)",
+        "description": "This will affect how long the alarm can't fire again after it's been triggered. If you find yourself using the snooze function all the time, this might be the value to tweak.",
+        "min": 0,
+        "max": 60,
+        "step": 0.5
+      }
+    ]
+  },
+  {
+  "type": "section",
+  "items": [
     {
     "type": "heading",
-    "defaultValue":"Alert settings"
-    },
-    {
-      "type": "slider",
-      "messageKey": "Threshold",
-      "defaultValue": 130,
-      "label": "Alert at (bpm)",
-      "description": "When your HR monitor readings exceed this value, your Pebble will vibrate and display your current heart rate.",
-      "min": 50,
-      "max": 200,
-      "step": 1
+    "defaultValue":"Measure settings"
     },
     {
       "type": "toggle",

@@ -35,6 +35,7 @@ static void prv_default_settings() {
   settings.BackgroundWorker = false;
   settings.Frequency = 300;
   settings.SnoozeUntil = 0;
+  settings.Backoff = 1;
 }
 
 // Read settings from persistent storage
@@ -83,6 +84,12 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
   if (threshold_t) {
     settings.Threshold = threshold_t->value->int32;
     update_threshold_hr_layer();
+  }
+
+  // Backoff
+  Tuple *backoff_t = dict_find(iter, MESSAGE_KEY_Threshold);
+  if (backoff_t) {
+    settings.Backoff = backoff_t->value->int32;
   }
 
   bool success = true;
@@ -420,7 +427,7 @@ static void init(void) {
   }
   text_layer_set_text(s_hr_live, s_hrm_buffer);
   if ((value > settings.Threshold) && (time(NULL) - settings.SnoozeUntil >= 0)) {
-    snooze(time(NULL) + SECONDS_PER_MINUTE);
+    snooze(time(NULL) + settings.Backoff * 6);
     vibes_enqueue_custom_pattern(pat);
   }
 
