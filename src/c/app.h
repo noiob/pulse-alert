@@ -29,3 +29,4 @@ static void minus_click_handler();
 static void save_click_handler();
 static void click_config_provider();
 static void edit_click_config_provider();
+static void get_historic_bpm();

@@ -91,11 +91,11 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
   Tuple *override_freq_t = dict_find(iter, MESSAGE_KEY_OverrideFreq);
   if (override_freq_t) {
     settings.OverrideFreq = override_freq_t->value->int32 == 1;
-    if (!settings.OverrideFreq) {
-      success = health_service_set_heart_rate_sample_period(0);
+    if (settings.OverrideFreq && app_worker_is_running()) {
+      success = health_service_set_heart_rate_sample_period(settings.Frequency);
     }
     else {
-      success = health_service_set_heart_rate_sample_period(settings.Frequency);
+      success = health_service_set_heart_rate_sample_period(0);
     }
   }
 
@@ -103,7 +103,7 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
   Tuple *frequency_t = dict_find(iter, MESSAGE_KEY_Frequency);
   if (frequency_t) {
     settings.Frequency = frequency_t->value->int32;
-    if (settings.OverrideFreq) {
+    if (settings.OverrideFreq && app_worker_is_running()) {
       success = health_service_set_heart_rate_sample_period(settings.Frequency);
     }
   }
@@ -119,6 +119,8 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 static void prv_on_health_data(HealthEventType type, void *context) {
   // If the update was from the Heart Rate Monitor, query it
   if (type == HealthEventHeartRateUpdate) {
+    get_historic_bpm();
+
     HealthValue value = health_service_peek_current_value(HealthMetricHeartRateBPM);
     // Check the heart rate
     APP_LOG(APP_LOG_LEVEL_DEBUG, "current heart rate: %lu", (uint32_t) value);
@@ -431,9 +433,37 @@ static void init(void) {
   // Listen for AppMessages
   app_message_register_inbox_received(prv_inbox_received_handler);
   app_message_open(128, 128);
+
+  //Set either 60s period or the overridden one, which one is shorter
+  bool success = true;
+  if (settings.OverrideFreq && app_worker_is_running()) {
+    if (settings.Frequency < 60) {
+      success = health_service_set_heart_rate_sample_period(settings.Frequency);
+    }
+    else {
+      success = health_service_set_heart_rate_sample_period(60);
+    }
+  }
+  else {
+    success = health_service_set_heart_rate_sample_period(60);
+  }
+  if (!success) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Could not set sampling period");
+  }
 }
 
 static void deinit(void) {
+  bool success = true;
+  if (settings.OverrideFreq && app_worker_is_running()) {
+    success = health_service_set_heart_rate_sample_period(settings.Frequency);
+  }
+  else {
+    success = health_service_set_heart_rate_sample_period(0);
+  }
+  if (!success) {
+    APP_LOG(APP_LOG_LEVEL_DEBUG, "Could not set sampling period");
+  }
+
   hide_main_window();
   action_menu_hierarchy_destroy(s_action_menu_level, NULL, NULL);
   free(data);
