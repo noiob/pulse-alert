@@ -87,7 +87,7 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
   }
 
   // Backoff
-  Tuple *backoff_t = dict_find(iter, MESSAGE_KEY_Threshold);
+  Tuple *backoff_t = dict_find(iter, MESSAGE_KEY_Backoff);
   if (backoff_t) {
     settings.Backoff = backoff_t->value->int32;
   }
