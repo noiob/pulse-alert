@@ -120,8 +120,10 @@ static void prv_on_health_data(HealthEventType type, void *context) {
     // Check the heart rate
     APP_LOG(APP_LOG_LEVEL_DEBUG, "current heart rate: %lu", (uint32_t) value);
 
-    static char s_hrm_buffer[8];
-    snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu", (uint32_t) value);
+    static char s_hrm_buffer[8] = "-";
+    if (value != 0) {
+      snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu", (uint32_t) value);
+    }
     text_layer_set_text(s_hr_live, s_hrm_buffer);
     if ((value > settings.Threshold) && (time(NULL) - settings.SnoozeUntil >= 0)) {
       snooze(time(NULL) + SECONDS_PER_MINUTE);
@@ -169,14 +171,14 @@ static void edit_click_handler() {
 }
 
 static void plus_click_handler() {
-  if (settings.Threshold < 190) {
+  if (settings.Threshold <= 190) {
     settings.Threshold += 10;
   }
   update_threshold_hr_layer();
 }
 
 static void minus_click_handler() {
-  if (settings.Threshold > 40) {
+  if (settings.Threshold >= 60) {
     settings.Threshold -= 10;
   }
   update_threshold_hr_layer();
@@ -329,8 +331,10 @@ static void init(void) {
   APP_LOG(APP_LOG_LEVEL_DEBUG, "current heart rate: %lu", (uint32_t) value);
 
   prv_load_settings();
-  static char s_hrm_buffer[8];
-  snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu", (uint32_t) value);
+  static char s_hrm_buffer[8] = "-";
+  if (value != 0) {
+    snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu", (uint32_t) value);
+  }
   text_layer_set_text(s_hr_live, s_hrm_buffer);
   if ((value > settings.Threshold) && (time(NULL) - settings.SnoozeUntil >= 0)) {
     snooze(time(NULL) + SECONDS_PER_MINUTE);
