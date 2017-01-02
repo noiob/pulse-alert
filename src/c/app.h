@@ -17,6 +17,8 @@ typedef struct ClaySettings {
   time_t SnoozeUntil;
 } __attribute__((__packed__)) ClaySettings;
 
+struct HealthMinuteData;
+
 void snooze(time_t until);
 static void init();
 static void deinit();

@@ -23,7 +23,10 @@ static StatusBarLayer *s_status_bar;
 static Layer *s_graph;
 static ActionMenu *s_action_menu;
 static ActionMenuLevel *s_action_menu_level;
-ClaySettings settings;
+static ClaySettings settings;
+static HealthMinuteData *data;
+static int min, max;
+uint32_t max_records;
 
 // Initialize the default settings
 static void prv_default_settings() {
@@ -203,6 +206,81 @@ static void edit_click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) minus_click_handler);
 }
 
+static int scale (int val, int height, int loc_min, double my_scale) {
+  return (-1 * ((val - loc_min) * my_scale)) + height + 0.5;
+}
+
+static uint32_t get_available_records(HealthMinuteData *array, time_t query_start, time_t query_end, uint32_t max_records) {
+  time_t next_start = query_start;
+  time_t next_end = query_end;
+  uint32_t num_records_found = 0;
+
+  // Find more records until no more are returned
+  while (num_records_found < max_records) {
+    int ask_num_records = max_records - num_records_found;
+    uint32_t ret_val = health_service_get_minute_history(&array[num_records_found], ask_num_records, &next_start, &next_end);
+    if (ret_val == 0) {
+      // a 0 return value means no more data is available
+      return num_records_found;
+    }
+    num_records_found += ret_val;
+    next_start = next_end;
+    next_end = query_end;
+  } 
+
+  return num_records_found;
+}
+
+static void get_historic_bpm() {
+  // Query for the last 15 minutes
+  const time_t query_end = time(NULL);
+  const time_t query_start = query_end - (15 * SECONDS_PER_MINUTE);
+  max_records = (query_end - query_start) / SECONDS_PER_MINUTE;
+  data = malloc(max_records * sizeof(HealthMinuteData));
+
+  // Populate the array
+  max_records = get_available_records(data, query_start, query_end, max_records);
+  
+  max = 0;
+  min = 300;
+
+  // Calculate highest and lowest value
+  for(uint32_t i = 0; i < max_records; i++) {
+    if(!(data[i].heart_rate_bpm == 0)) {
+      if (data[i].heart_rate_bpm > max) {
+        max = data[i].heart_rate_bpm;
+      }
+      if (data[i].heart_rate_bpm < min) {
+        min = data[i].heart_rate_bpm;
+      }
+    }
+  }
+}
+
+static void draw_graph(Layer *layer, GContext *ctx) {
+  // Start drawing the graph
+  GRect bounds = layer_get_bounds(s_graph);
+  int step = bounds.size.w / max_records;
+  int height = bounds.size.h - 1;
+  GPoint last_point = GPoint(0,0);
+  double my_scale = (double) (height) / (double) (max - min);
+
+  if (data[0].heart_rate_bpm != 0) {
+    last_point = GPoint(0,scale(data[0].heart_rate_bpm,height,min,my_scale));
+  }
+  // Print the results
+  for(uint32_t i = 0; i < max_records; i++) {
+    if(!(data[i].heart_rate_bpm == 0)) {
+      if ((last_point.x == 0) && (last_point.y == 0)) {
+        last_point = GPoint(0,scale(data[i].heart_rate_bpm,height,min,my_scale));
+      }
+      graphics_draw_line(ctx, last_point, GPoint(i*step, scale(data[i].heart_rate_bpm,height,min,my_scale)));
+      last_point = GPoint(i*step, scale(data[i].heart_rate_bpm,height,min,my_scale));
+    }
+  }
+  graphics_draw_line(ctx, last_point, GPoint(bounds.size.w, last_point.y));
+}
+
 static void initialise_ui(void) {
   s_window = window_create();
   #ifndef PBL_SDK_3
@@ -221,20 +299,20 @@ static void initialise_ui(void) {
   s_res_gothic_28 = fonts_get_system_font(FONT_KEY_GOTHIC_28);
   
   // s_hr_live_label
-  s_hr_live_label = text_layer_create(GRect(85, 87, 28, 20));
+  s_hr_live_label = text_layer_create(GRect(85, 103, 28, 20));
   text_layer_set_background_color(s_hr_live_label, GColorClear);
   text_layer_set_text(s_hr_live_label, "BPM");
   layer_add_child(window_get_root_layer(s_window), (Layer *)s_hr_live_label);
   
   // s_hr_live
-  s_hr_live = text_layer_create(GRect(0, 58, 85, 45));
+  s_hr_live = text_layer_create(GRect(0, 74, 85, 45));
   text_layer_set_background_color(s_hr_live, GColorClear);
   text_layer_set_text_alignment(s_hr_live, GTextAlignmentRight);
   text_layer_set_font(s_hr_live, s_res_leco_42_numbers);
   layer_add_child(window_get_root_layer(s_window), (Layer *)s_hr_live);
   
   // s_alert_label
-  s_alert_label = text_layer_create(GRect(0, 115, 110, 18));
+  s_alert_label = text_layer_create(GRect(0, 123, 110, 18));
   text_layer_set_background_color(s_alert_label, GColorClear);
   text_layer_set_text(s_alert_label, "ALERT AT");
   text_layer_set_text_alignment(s_alert_label, GTextAlignmentCenter);
@@ -242,12 +320,12 @@ static void initialise_ui(void) {
   layer_add_child(window_get_root_layer(s_window), (Layer *)s_alert_label);
   
   // s_heart_icon
-  s_heart_icon = bitmap_layer_create(GRect(85, 65, 24, 25));
+  s_heart_icon = bitmap_layer_create(GRect(85, 81, 24, 25));
   bitmap_layer_set_bitmap(s_heart_icon, s_res_heart);
   layer_add_child(window_get_root_layer(s_window), (Layer *)s_heart_icon);
   
   // s_alert_threshold
-  s_alert_threshold = text_layer_create(GRect(0, 125, 110, 28));
+  s_alert_threshold = text_layer_create(GRect(0, 133, 110, 28));
   text_layer_set_background_color(s_alert_threshold, GColorClear);
   static char s_threshold_buffer[8];
   snprintf(s_threshold_buffer, sizeof(s_threshold_buffer), "%d BPM", settings.Threshold);
@@ -257,7 +335,8 @@ static void initialise_ui(void) {
   layer_add_child(window_get_root_layer(s_window), (Layer *)s_alert_threshold);
   
   // s_graph
-  s_graph = layer_create(GRect(5, 5, 105, 55));
+  s_graph = layer_create(GRect(5, 5 + STATUS_BAR_LAYER_HEIGHT, 105, 55));
+  layer_set_update_proc(s_graph,draw_graph);
   layer_add_child(window_get_root_layer(s_window), (Layer *)s_graph);
   
   // s_status_bar
@@ -312,6 +391,8 @@ void hide_main_window(void) {
 static void init(void) {
   prv_load_settings();
 
+  get_historic_bpm();
+
   show_main_window();
   
   //custom vibe pattern to really catch the user's attention
@@ -355,6 +436,7 @@ static void init(void) {
 static void deinit(void) {
   hide_main_window();
   action_menu_hierarchy_destroy(s_action_menu_level, NULL, NULL);
+  free(data);
   
   //unsubscribe from healt data
   health_service_events_unsubscribe();
