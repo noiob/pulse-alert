@@ -1,5 +1,5 @@
 {
-    "author": "jleuker@gmx.net",
+    "author": "Noiob",
     "dependencies": {
         "pebble-clay": "^1.0.3"
     },
@@ -62,6 +62,12 @@
                     "name": "PLUS",
                     "targetPlatforms": null,
                     "type": "bitmap"
+                },
+                {
+                    "file": "images/icon.png",
+                    "menuIcon": true,
+                    "name": "IMAGES_ICON_PNG",
+                    "type": "png"
                 }
             ]
         },
