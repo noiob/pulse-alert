@@ -7,3 +7,5 @@ Need to watch your heart rate? This is the app for you! Pulse Alert runs in the 
 The app itself displays your heart rate plus all the measurements of the last 15 minutes on a handy graph. You can set your alert threshold in the app, too, start or stop the background process and snooze the alarm.
 
 If you have any suggestions for Pulse Alert or a part of the app isn't working for you, you can open a Github issue or contact me directly.
+
+[![Pulse Alert | App](http://pblweb.com/badge/586a9a9fe09e637c8c0003a7/black/small)](https://apps.getpebble.com/en_US/application/586a9a9fe09e637c8c0003a7)
