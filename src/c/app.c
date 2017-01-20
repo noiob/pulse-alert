@@ -443,7 +443,7 @@ static void init(void) {
 
   //Set either 60s period or the overridden one, which one is shorter
   bool success = true;
-  if (settings.OverrideFreq && app_worker_is_running()) {
+  if (settings.OverrideFreq) {
     if (settings.Frequency < 60) {
       success = health_service_set_heart_rate_sample_period(settings.Frequency);
     }
