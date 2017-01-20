@@ -76,6 +76,15 @@ module.exports = [
     ]
   },
   {
+    "type": "section",
+    "items": [
+      {
+        "type": "text",
+        "defaultValue": "Special thanks to <a href='https://twitter.com/Potato_Fi'>Joel Crane</a> for the app and the heart icon."
+      }
+    ]
+  },
+  {
     "type": "heading",
     "defaultValue": "Please remember this disclaimer from Pebble"
   },
