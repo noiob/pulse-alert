@@ -100,7 +100,6 @@ static void update_threshold_hr_layer(int value) {
       settings.SportsModeFired = false;
     }
   }
-  settings.SportsModeFired = false;
   static char s_threshold_buffer[8];
   snprintf(s_threshold_buffer, sizeof(s_threshold_buffer), "%d BPM", settings.Threshold);
   text_layer_set_text(s_alert_threshold, s_threshold_buffer);
@@ -194,12 +193,12 @@ static void prv_on_health_data(HealthEventType type, void *context) {
 
     if (settings.SportsMode) { // Sports Mode
       if ((value >= settings.Threshold) && (!settings.SportsModeFired)) {
-        settings.SportsModeFired = true;
         vibes_enqueue_custom_pattern(pat);
+        settings.SportsModeFired = true;
       }
       else if ((value < settings.Threshold) && (settings.SportsModeFired)) {
-        settings.SportsModeFired = false;
         vibes_enqueue_custom_pattern(pat2);
+        settings.SportsModeFired = false;
       }
     }
     else { // Normal Mode
