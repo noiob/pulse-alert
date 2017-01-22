@@ -254,14 +254,14 @@ static void edit_click_handler() {
 }
 
 static void plus_click_handler() {
-  if (settings.Threshold <= 190) {
-    update_threshold_hr_layer(settings.Threshold + 10);
+  if (settings.Threshold <= 295) {
+    update_threshold_hr_layer(settings.Threshold + 5);
   }
 }
 
 static void minus_click_handler() {
-  if (settings.Threshold >= 60) {
-    update_threshold_hr_layer(settings.Threshold - 10);
+  if (settings.Threshold >= 5) {
+    update_threshold_hr_layer(settings.Threshold - 5);
   }
 }
 

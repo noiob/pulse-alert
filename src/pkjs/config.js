@@ -17,9 +17,9 @@ module.exports = [
         "defaultValue": 130,
         "label": "Alert at (bpm)",
         "description": "When your HR monitor readings exceed this value, your Pebble will vibrate and display your current heart rate.",
-        "min": 50,
-        "max": 200,
-        "step": 1
+        "min": 0,
+        "max": 300,
+        "step": 5
       },
       {
         "type": "slider",
