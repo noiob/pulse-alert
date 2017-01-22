@@ -25,7 +25,7 @@ static ActionMenu *s_action_menu;
 static ActionMenuLevel *s_action_menu_level;
 static ClaySettings settings;
 static HealthMinuteData *data;
-static int min, max;
+static int min, max, last_val;
 uint32_t max_records;
 
 // Initialize the default settings
@@ -200,6 +200,7 @@ static void prv_on_health_data(HealthEventType type, void *context) {
         vibes_enqueue_custom_pattern(pat2);
         settings.SportsModeFired = false;
       }
+      prv_save_settings();
     }
     else { // Normal Mode
       if ((value >= settings.Threshold) && (time(NULL) - settings.SnoozeUntil >= 0)) {
@@ -208,7 +209,8 @@ static void prv_on_health_data(HealthEventType type, void *context) {
       }
     }
 
-    if (true) { // don't always refresh this
+    if (value != last_val) { // don't always refresh this
+      last_val = value;
       get_historic_bpm();
     }
   }
