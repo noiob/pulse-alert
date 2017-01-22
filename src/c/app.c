@@ -283,7 +283,7 @@ static void edit_click_config_provider(void *context) {
 }
 
 static int scale (int val, int height, int loc_min, double my_scale) {
-  return (-1 * ((val - loc_min) * my_scale)) + height + 0.5;
+  return (-1 * ((val - loc_min) * my_scale)) + height - 0.5;
 }
 
 static uint32_t get_available_records(HealthMinuteData *array, time_t query_start, time_t query_end, uint32_t max_records) {
@@ -335,9 +335,10 @@ static void get_historic_bpm() {
 
 static void draw_graph(Layer *layer, GContext *ctx) {
   // Start drawing the graph
+  graphics_context_set_stroke_width(ctx, 2);
   GRect bounds = layer_get_bounds(s_graph);
   int step = bounds.size.w / max_records;
-  int height = bounds.size.h - 1;
+  int height = bounds.size.h - 2;
   GPoint last_point = GPoint(0,0);
   double my_scale = (double) (height) / (double) (max - min);
 
@@ -355,6 +356,9 @@ static void draw_graph(Layer *layer, GContext *ctx) {
     }
   }
   graphics_draw_line(ctx, last_point, GPoint(bounds.size.w, last_point.y));
+  // Draw in the Threshold
+  graphics_context_set_stroke_width(ctx, 1);
+  graphics_draw_line(ctx, GPoint(0, scale(settings.Threshold,height,min,my_scale)), GPoint(bounds.size.w, scale(settings.Threshold,height,min,my_scale)));
 }
 
 static void initialise_ui(void) {
