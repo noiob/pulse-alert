@@ -30,6 +30,13 @@ module.exports = [
         "min": 0,
         "max": 60,
         "step": 0.5
+      },
+      {
+        "type": "toggle",
+        "messageKey": "SportsMode",
+        "label": "Sports Mode",
+        "defaultValue": "false",
+        "description": "Sports Mode will notify you once when your heart rate gets over the alert value, and again when you dip below it. It will only work while the app is running because of technical limitations. The background worker will still behave normally (turn it off in the app if you don't want it). Custom frequency is supported. This setting is also present in the app menu."
       }
     ]
   },

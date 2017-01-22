@@ -16,7 +16,8 @@
             "Threshold",
             "OverrideFreq",
             "Frequency",
-            "Backoff"
+            "Backoff",
+            "SportsMode"
         ],
         "projectType": "native",
         "resources": {

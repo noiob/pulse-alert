@@ -8,6 +8,8 @@ static void prv_default_settings() {
   settings.Threshold = 130;
   settings.OverrideFreq = false;
   settings.BackgroundWorker = false;
+  settings.SportsMode = false;
+  settings.SportsModeFired = false;
   settings.Frequency = 300;
   settings.SnoozeUntil = 0;
   settings.Backoff = 1;
@@ -39,7 +41,8 @@ static void prv_on_health_data(HealthEventType type, void *context) {
     // Check the heart rate
     APP_LOG(APP_LOG_LEVEL_DEBUG, "current heart rate: %lu", (uint32_t) value);
     prv_load_settings();
-    if ((value > settings.Threshold) && (time(NULL) - settings.SnoozeUntil >= 0)) {
+
+    if ((value >= settings.Threshold) && (time(NULL) - settings.SnoozeUntil >= 0)) {
       snooze(time(NULL) + settings.Backoff * 6);
       worker_launch_app();
     }

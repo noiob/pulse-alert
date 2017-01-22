@@ -7,6 +7,8 @@ typedef struct ClaySettings {
   uint16_t Threshold;
   bool OverrideFreq;
   bool BackgroundWorker;
+  bool SportsMode;
+  bool SportsModeFired;
   uint16_t Frequency;
   time_t SnoozeUntil;
   uint16_t Backoff;

@@ -33,6 +33,8 @@ static void prv_default_settings() {
   settings.Threshold = 130;
   settings.OverrideFreq = false;
   settings.BackgroundWorker = false;
+  settings.SportsMode = false;
+  settings.SportsModeFired = false;
   settings.Frequency = 300;
   settings.SnoozeUntil = 0;
   settings.Backoff = 1;
@@ -69,7 +71,36 @@ static void stop_app_worker() {
   }
 }
 
-static void update_threshold_hr_layer() {
+static void start_sports_mode() {
+  prv_load_settings();
+  settings.SportsMode = true;
+  if (health_service_peek_current_value(HealthMetricHeartRateBPM) >= settings.Threshold) {
+    settings.SportsModeFired = true;
+  }
+  else {
+    settings.SportsModeFired = false;
+  }
+  prv_save_settings();
+}
+
+static void stop_sports_mode() {
+  prv_load_settings();
+  settings.SportsMode = false;
+  settings.SportsModeFired = false;
+  prv_save_settings();
+}
+
+static void update_threshold_hr_layer(int value) {
+  settings.Threshold = value;
+  if (settings.SportsMode) {
+    if (health_service_peek_current_value(HealthMetricHeartRateBPM) >= value) {
+      settings.SportsModeFired = true;
+    }
+    else {
+      settings.SportsModeFired = false;
+    }
+  }
+  settings.SportsModeFired = false;
   static char s_threshold_buffer[8];
   snprintf(s_threshold_buffer, sizeof(s_threshold_buffer), "%d BPM", settings.Threshold);
   text_layer_set_text(s_alert_threshold, s_threshold_buffer);
@@ -82,8 +113,7 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
   // Threshold
   Tuple *threshold_t = dict_find(iter, MESSAGE_KEY_Threshold);
   if (threshold_t) {
-    settings.Threshold = threshold_t->value->int32;
-    update_threshold_hr_layer();
+    update_threshold_hr_layer(threshold_t->value->int32);
   }
 
   // Backoff
@@ -110,7 +140,7 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
   Tuple *frequency_t = dict_find(iter, MESSAGE_KEY_Frequency);
   if (frequency_t) {
     settings.Frequency = frequency_t->value->int32;
-    if (settings.OverrideFreq && app_worker_is_running()) {
+    if (settings.OverrideFreq) {
       success = health_service_set_heart_rate_sample_period(settings.Frequency);
     }
   }
@@ -119,6 +149,17 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
     APP_LOG(APP_LOG_LEVEL_DEBUG, "Could not set sampling period");
   }
 
+  // Sports Mode
+    Tuple *sports_mode_t = dict_find(iter, MESSAGE_KEY_SportsMode);
+    if (sports_mode_t) {
+      if (sports_mode_t->value->int32 == 1) {
+        start_sports_mode();
+      }
+      else {
+        stop_sports_mode();
+      }
+    }
+
   //don't forget to save!
   prv_save_settings();
 }
@@ -126,7 +167,6 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 static void prv_on_health_data(HealthEventType type, void *context) {
   // If the update was from the Heart Rate Monitor, query it
   if (type == HealthEventHeartRateUpdate) {
-    get_historic_bpm();
 
     HealthValue value = health_service_peek_current_value(HealthMetricHeartRateBPM);
     // Check the heart rate
@@ -137,16 +177,40 @@ static void prv_on_health_data(HealthEventType type, void *context) {
       snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu", (uint32_t) value);
     }
     text_layer_set_text(s_hr_live, s_hrm_buffer);
-    if ((value > settings.Threshold) && (time(NULL) - settings.SnoozeUntil >= 0)) {
-      snooze(time(NULL) + SECONDS_PER_MINUTE);
-      
-      //custom vibe pattern to really catch the user's attention
-      static const uint32_t segments[] = { 100, 100, 100, 100, 100, 100, 800 };
-      VibePattern pat = {
-        .durations = segments,
-        .num_segments = ARRAY_LENGTH(segments),
-      };
-      vibes_enqueue_custom_pattern(pat);
+
+    prv_load_settings();
+
+    //custom vibe patterns to really catch the user's attention
+    static const uint32_t segments[] = { 100, 100, 100, 100, 100, 100, 800 };
+    VibePattern pat = {
+      .durations = segments,
+      .num_segments = ARRAY_LENGTH(segments),
+    };
+    static const uint32_t segments2[] = { 800, 100, 100};
+    VibePattern pat2 = {
+      .durations = segments2,
+      .num_segments = ARRAY_LENGTH(segments2),
+    };
+
+    if (settings.SportsMode) { // Sports Mode
+      if ((value >= settings.Threshold) && (!settings.SportsModeFired)) {
+        settings.SportsModeFired = true;
+        vibes_enqueue_custom_pattern(pat);
+      }
+      else if ((value < settings.Threshold) && (settings.SportsModeFired)) {
+        settings.SportsModeFired = false;
+        vibes_enqueue_custom_pattern(pat2);
+      }
+    }
+    else { // Normal Mode
+      if ((value >= settings.Threshold) && (time(NULL) - settings.SnoozeUntil >= 0)) {
+        snooze(time(NULL) + settings.Backoff * 6);
+        vibes_enqueue_custom_pattern(pat);
+      }
+    }
+
+    if (true) { // don't always refresh this
+      get_historic_bpm();
     }
   }
 }
@@ -156,12 +220,18 @@ static void snooze_click_handler() {
 }
 
 static void menu_click_handler() {
-  s_action_menu_level = action_menu_level_create(1);
+  s_action_menu_level = action_menu_level_create(2); // number of entries here
   if (app_worker_is_running()) {
     action_menu_level_add_action(s_action_menu_level, "Stop worker task", stop_app_worker, NULL);
   }
   else {
     action_menu_level_add_action(s_action_menu_level, "Start worker task", start_app_worker, NULL);
+  }
+  if (settings.SportsMode) {
+    action_menu_level_add_action(s_action_menu_level, "Stop sports mode", stop_sports_mode, NULL);
+  }
+  else {
+    action_menu_level_add_action(s_action_menu_level, "Start sports mode", start_sports_mode, NULL);
   }
   ActionMenuConfig config = (ActionMenuConfig) {
     .root_level = s_action_menu_level,
@@ -184,16 +254,14 @@ static void edit_click_handler() {
 
 static void plus_click_handler() {
   if (settings.Threshold <= 190) {
-    settings.Threshold += 10;
+    update_threshold_hr_layer(settings.Threshold + 10);
   }
-  update_threshold_hr_layer();
 }
 
 static void minus_click_handler() {
   if (settings.Threshold >= 60) {
-    settings.Threshold -= 10;
+    update_threshold_hr_layer(settings.Threshold - 10);
   }
-  update_threshold_hr_layer();
 }
 
 static void save_click_handler() {
@@ -403,36 +471,17 @@ static void init(void) {
   get_historic_bpm();
 
   show_main_window();
-  
-  //custom vibe pattern to really catch the user's attention
-  static const uint32_t segments[] = { 100, 100, 100, 100, 100, 100, 800 };
-  VibePattern pat = {
-    .durations = segments,
-    .num_segments = ARRAY_LENGTH(segments),
-  };
 
   // Launch the background worker
   if (settings.BackgroundWorker) {
     start_app_worker();
   }
-  
-  HealthValue value = health_service_peek_current_value(HealthMetricHeartRateBPM);
-  // Check the heart rate
-  APP_LOG(APP_LOG_LEVEL_DEBUG, "current heart rate: %lu", (uint32_t) value);
-
-  prv_load_settings();
-  static char s_hrm_buffer[8] = "-";
-  if (value != 0) {
-    snprintf(s_hrm_buffer, sizeof(s_hrm_buffer), "%lu", (uint32_t) value);
-  }
-  text_layer_set_text(s_hr_live, s_hrm_buffer);
-  if ((value > settings.Threshold) && (time(NULL) - settings.SnoozeUntil >= 0)) {
-    snooze(time(NULL) + settings.Backoff * 6);
-    vibes_enqueue_custom_pattern(pat);
-  }
 
   // Subscribe to health event handler
   health_service_events_subscribe(prv_on_health_data, NULL);
+
+  // Check the heart rate
+  prv_on_health_data(HealthEventHeartRateUpdate, NULL);
 
   // App Logging!
   APP_LOG(APP_LOG_LEVEL_DEBUG, "Just pushed a window!");
