@@ -13,11 +13,14 @@
         "displayName": "Pulse Alert",
         "enableMultiJS": true,
         "messageKeys": [
+            "RequestSettings",
             "Threshold",
             "OverrideFreq",
             "Frequency",
             "Backoff",
-            "SportsMode"
+            "SportsMode",
+            "VibeTypeBelow",
+            "VibeTypeAbove"
         ],
         "projectType": "native",
         "resources": {

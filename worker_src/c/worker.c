@@ -13,6 +13,8 @@ static void prv_default_settings() {
   settings.Frequency = 300;
   settings.SnoozeUntil = 0;
   settings.Backoff = 1;
+  settings.VibeTypeAbove = 4;
+  settings.VibeTypeBelow = 3;
 }
 
 // Read settings from persistent storage

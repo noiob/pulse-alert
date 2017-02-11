@@ -37,7 +37,65 @@ module.exports = [
         "label": "Sports Mode",
         "defaultValue": "false",
         "description": "Sports Mode will notify you once when your heart rate gets over the alert value, and again when you dip below it. It will only work while the app is running because of technical limitations. The background worker will still behave normally (turn it off in the app if you don't want it). Custom frequency is supported. This setting is also present in the app menu."
-      }
+      },
+      {
+        "type": "select",// TODO
+        "messageKey": "VibeTypeAbove",
+        "defaultValue": "4",
+        "label": "Vibration (above)",
+        "description": "Vibration when going over the threshold",
+        "options": [
+          {
+            "label": "Single Tap",
+            "value": "0"
+          },
+          {
+            "label": "Double Tap",
+            "value": "1"
+          },
+          {
+            "label": "Five short Vibrations",
+            "value": "2"
+          },
+          {
+            "label": "Two long Vibrations",
+            "value": "3"
+          },
+          {
+            "label": "The 5th (default)",
+            "value": "4"
+          }
+        ]
+      },
+      {
+        "type": "select",// TODO
+        "messageKey": "VibeTypeBelow",
+        "defaultValue": "3",
+        "label": "Vibration (below)",
+        "description": "Vibration when going und the threshold. Sports mode only",
+        "options": [
+          {
+            "label": "Single Tap",
+            "value": "0"
+          },
+          {
+            "label": "Double Tap",
+            "value": "1"
+          },
+          {
+            "label": "Five short Vibrations",
+            "value": "2"
+          },
+          {
+            "label": "Two long Vibrations (default)",
+            "value": "3"
+          },
+          {
+            "label": "The 5th",
+            "value": "4"
+          }
+        ]
+      },
     ]
   },
   {
@@ -74,7 +132,7 @@ module.exports = [
   "items": [
       {
         "type": "text",
-        "defaultValue": "If you'd like to buy me a coffee, here's a PayPal button, but you really don't have to :)"
+        "defaultValue": "If you'd like to buy me a coffee, here's a PayPal button"
       },
       {
         "type": "text",

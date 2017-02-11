@@ -12,6 +12,8 @@ typedef struct ClaySettings {
   uint16_t Frequency;
   time_t SnoozeUntil;
   uint16_t Backoff;
+  uint8_t VibeTypeBelow;
+  uint8_t VibeTypeAbove;
 } __attribute__((__packed__)) ClaySettings;
 
 static void prv_default_settings();

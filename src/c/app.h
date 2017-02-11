@@ -18,6 +18,8 @@ typedef struct ClaySettings {
   uint16_t Frequency;
   time_t SnoozeUntil;
   uint16_t Backoff;
+  uint8_t VibeTypeBelow;
+  uint8_t VibeTypeAbove;
 } __attribute__((__packed__)) ClaySettings;
 
 struct HealthMinuteData;
@@ -33,3 +35,4 @@ static void save_click_handler();
 static void click_config_provider();
 static void edit_click_config_provider();
 static void get_historic_bpm();
+static void settings_send_settings();

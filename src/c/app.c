@@ -38,6 +38,8 @@ static void prv_default_settings() {
   settings.Frequency = 300;
   settings.SnoozeUntil = 0;
   settings.Backoff = 1;
+  settings.VibeTypeAbove = 4;
+  settings.VibeTypeBelow = 3;
 }
 
 // Read settings from persistent storage
@@ -48,9 +50,42 @@ static void prv_load_settings() {
   persist_read_data(SETTINGS_KEY, &settings, sizeof(settings));
 }
 
-// Save the settings to persistent storage
+// Save the settings to persistent storage, also send them to the phone
 static void prv_save_settings() {
   persist_write_data(SETTINGS_KEY, &settings, sizeof(settings));
+}
+
+void settings_send_settings() {
+  // First, create dictionary with all the settings
+
+  // Int to represent boolean value of these settings because C has no boolean type! D:
+  int OverrideFreq = (settings.OverrideFreq) ? 1 : 0;
+  //int BackgroundWorker = (settings.BackgroundWorker) ? 1 : 0;
+  int SportsMode = (settings.SportsMode) ? 1 : 0;
+
+  // Iterator variable, keeps the state of the creation serialization process:
+  DictionaryIterator *iter;
+
+  // Start AppMessage
+  app_message_outbox_begin(&iter);
+
+  // Write the values:
+  dict_write_int(iter, MESSAGE_KEY_Threshold, &settings.Threshold, 1, true);
+  dict_write_int(iter, MESSAGE_KEY_OverrideFreq, &OverrideFreq, 1, true);
+  //dict_write_int(iter, MESSAGE_KEY_BackgroundWorker, &BackgroundWorker, 1, true);
+  dict_write_int(iter, MESSAGE_KEY_SportsMode, &SportsMode, 1, true);
+  dict_write_int(iter, MESSAGE_KEY_Frequency, &settings.Frequency, 1, true);
+  dict_write_int(iter, MESSAGE_KEY_Backoff, &settings.Backoff, 1, true);
+  dict_write_int(iter, MESSAGE_KEY_VibeTypeAbove, &settings.VibeTypeAbove, 1, true);
+  dict_write_int(iter, MESSAGE_KEY_VibeTypeBelow, &settings.VibeTypeBelow, 1, true);
+
+  // End:
+  dict_write_end(iter);
+
+  // Send to phone
+  app_message_outbox_send();
+
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "The AppMessage containing the settings dict has been sent.");
 }
 
 void snooze(time_t until) {
@@ -80,6 +115,7 @@ static void start_sports_mode() {
   else {
     settings.SportsModeFired = false;
   }
+  settings_send_settings();
   prv_save_settings();
 }
 
@@ -87,7 +123,47 @@ static void stop_sports_mode() {
   prv_load_settings();
   settings.SportsMode = false;
   settings.SportsModeFired = false;
+  settings_send_settings();
   prv_save_settings();
+}
+
+static void vibe (int type) {
+  APP_LOG(APP_LOG_LEVEL_DEBUG, "Vibrating… type %d", type);
+  vibes_cancel();
+
+  static const uint32_t segments1[] = { 250, 100, 250, 100, 250, 100, 250, 100, 250 };
+  VibePattern pat1 = {
+    .durations = segments1,
+    .num_segments = ARRAY_LENGTH(segments1),
+  };
+  static const uint32_t segments2[] = { 800, 200, 800};
+  VibePattern pat2 = {
+    .durations = segments2,
+    .num_segments = ARRAY_LENGTH(segments2),
+  };
+  static const uint32_t segments3[] = { 100, 100, 100, 100, 100, 100, 800 };
+  VibePattern pat3 = {
+    .durations = segments3,
+    .num_segments = ARRAY_LENGTH(segments3),
+  };
+
+  switch (type) {
+    case 0: // single tap
+      vibes_short_pulse();
+    break;
+    case 1: // double tap
+      vibes_double_pulse();
+    break;
+    case 2: // five short
+      vibes_enqueue_custom_pattern(pat1);
+    break;
+    case 3: // two long
+      vibes_enqueue_custom_pattern(pat2);
+    break;
+    case 4: // the 5th
+      vibes_enqueue_custom_pattern(pat3);
+    break;
+  }
 }
 
 static void update_threshold_hr_layer(int value) {
@@ -103,12 +179,20 @@ static void update_threshold_hr_layer(int value) {
   static char s_threshold_buffer[8];
   snprintf(s_threshold_buffer, sizeof(s_threshold_buffer), "%d BPM", settings.Threshold);
   text_layer_set_text(s_alert_threshold, s_threshold_buffer);
+  
+  settings_send_settings();
   prv_save_settings();
 }
 
 static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) {
   prv_load_settings();
-  
+
+  // Check if this is a request to send the settings on watch to the phone
+  Tuple *request_settings_t = dict_find(iter, MESSAGE_KEY_RequestSettings);
+  if (request_settings_t) {
+    settings_send_settings(); // If yes, then send the settings
+  }
+
   // Threshold
   Tuple *threshold_t = dict_find(iter, MESSAGE_KEY_Threshold);
   if (threshold_t) {
@@ -149,15 +233,27 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
   }
 
   // Sports Mode
-    Tuple *sports_mode_t = dict_find(iter, MESSAGE_KEY_SportsMode);
-    if (sports_mode_t) {
-      if (sports_mode_t->value->int32 == 1) {
-        start_sports_mode();
-      }
-      else {
-        stop_sports_mode();
-      }
+  Tuple *sports_mode_t = dict_find(iter, MESSAGE_KEY_SportsMode);
+  if (sports_mode_t) {
+    if (sports_mode_t->value->int32 == 1) {
+      start_sports_mode();
     }
+    else {
+      stop_sports_mode();
+    }
+  }
+
+  // Vibration type
+  Tuple *vibetypeabove_t = dict_find(iter, MESSAGE_KEY_VibeTypeAbove);
+  if (vibetypeabove_t) {
+    settings.VibeTypeAbove = vibetypeabove_t->value->int8;
+    APP_LOG(APP_LOG_LEVEL_DEBUG,"VibeTypeAbove: %d", settings.VibeTypeAbove);
+  }
+  Tuple *vibetypebelow_t = dict_find(iter, MESSAGE_KEY_VibeTypeBelow);
+  if (vibetypebelow_t) {
+    settings.VibeTypeBelow = vibetypebelow_t->value->int8;
+    APP_LOG(APP_LOG_LEVEL_DEBUG,"VibeTypeBelow: %d", settings.VibeTypeBelow);
+  }
 
   //don't forget to save!
   prv_save_settings();
@@ -179,25 +275,13 @@ static void prv_on_health_data(HealthEventType type, void *context) {
 
     prv_load_settings();
 
-    //custom vibe patterns to really catch the user's attention
-    static const uint32_t segments[] = { 100, 100, 100, 100, 100, 100, 800 };
-    VibePattern pat = {
-      .durations = segments,
-      .num_segments = ARRAY_LENGTH(segments),
-    };
-    static const uint32_t segments2[] = { 800, 100, 100};
-    VibePattern pat2 = {
-      .durations = segments2,
-      .num_segments = ARRAY_LENGTH(segments2),
-    };
-
     if (settings.SportsMode) { // Sports Mode
       if ((value >= settings.Threshold) && (!settings.SportsModeFired)) {
-        vibes_enqueue_custom_pattern(pat);
+        vibe(settings.VibeTypeAbove);
         settings.SportsModeFired = true;
       }
       else if ((value < settings.Threshold) && (settings.SportsModeFired)) {
-        vibes_enqueue_custom_pattern(pat2);
+        vibe(settings.VibeTypeBelow);
         settings.SportsModeFired = false;
       }
       prv_save_settings();
@@ -205,7 +289,7 @@ static void prv_on_health_data(HealthEventType type, void *context) {
     else { // Normal Mode
       if ((value >= settings.Threshold) && (time(NULL) - settings.SnoozeUntil >= 0)) {
         snooze(time(NULL) + settings.Backoff * 6);
-        vibes_enqueue_custom_pattern(pat);
+        vibe(settings.VibeTypeAbove);
       }
     }
 
@@ -285,7 +369,7 @@ static void edit_click_config_provider(void *context) {
 }
 
 static int scale (int val, int height, int loc_min, double my_scale) {
-  return (-1 * ((val - loc_min) * my_scale)) + height - 0.5;
+  return (-1 * ((val - loc_min) * my_scale)) + height + 0.5;
 }
 
 static uint32_t get_available_records(HealthMinuteData *array, time_t query_start, time_t query_end, uint32_t max_records) {
