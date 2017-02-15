@@ -304,8 +304,11 @@ static void snooze_click_handler() {
   show_snooze_window();
 }
 
+static void do_nothing() {
+}
+
 static void menu_click_handler() {
-  s_action_menu_level = action_menu_level_create(2); // number of entries here
+  s_action_menu_level = action_menu_level_create(3); // number of entries here
   if (app_worker_is_running()) {
     action_menu_level_add_action(s_action_menu_level, "Stop worker task", stop_app_worker, NULL);
   }
@@ -318,6 +321,7 @@ static void menu_click_handler() {
   else {
     action_menu_level_add_action(s_action_menu_level, "Start sports mode", start_sports_mode, NULL);
   }
+  action_menu_level_add_action(s_action_menu_level, "Configuration in the Pebble app", do_nothing, NULL);
   ActionMenuConfig config = (ActionMenuConfig) {
     .root_level = s_action_menu_level,
     .colors = {

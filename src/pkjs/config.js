@@ -108,13 +108,13 @@ module.exports = [
     {
       "type": "toggle",
       "messageKey": "OverrideFreq",
-      "label": "Use custom frequency",
+      "label": "Use custom frequency (Only works while the app is open due to technical limitations.)",
       "defaultValue": false
     },
     {
       "type": "slider",
       "messageKey": "Frequency",
-      "defaultValue": 300,
+      "defaultValue": 60,
       "label": "heart rate monitor frequency (every x seconds)",
       "description": "This will tell the Health servie how often you want your heart rate to be measured. The system will use this value as a suggestion, but does not guarantee that value will be used. The actual sampling period may be greater or less due to other apps that require input from the sensor, or data quality issues. Will definitely affect battery life, as default handling is 'measure every 15 minutes or more often when activity is detected'",
       "min": 1,
