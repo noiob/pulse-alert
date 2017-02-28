@@ -367,9 +367,9 @@ static void click_config_provider(void *context) {
 }
 
 static void edit_click_config_provider(void *context) {
-  window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) plus_click_handler);
+  window_single_repeating_click_subscribe(BUTTON_ID_UP, 200, (ClickHandler) plus_click_handler);
   window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) save_click_handler);
-  window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) minus_click_handler);
+  window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 200, (ClickHandler) minus_click_handler);
 }
 
 static int scale (int val, int height, int loc_min, double my_scale) {

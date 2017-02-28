@@ -81,15 +81,15 @@ static void save_min_click_handler () {
 }
 
 static void snooze_window_click_config_provider_h(void *context) {
-  window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) plus_h_click_handler);
+  window_single_repeating_click_subscribe(BUTTON_ID_UP, 200, (ClickHandler) plus_h_click_handler);
   window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) save_h_click_handler);
-  window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) minus_h_click_handler);
+  window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 200, (ClickHandler) minus_h_click_handler);
 }
 
 static void snooze_window_click_config_provider_min(void *context) {
-  window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) plus_min_click_handler);
+  window_single_repeating_click_subscribe(BUTTON_ID_UP, 200, (ClickHandler) plus_min_click_handler);
   window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) save_min_click_handler);
-  window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) minus_min_click_handler);
+  window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 200, (ClickHandler) minus_min_click_handler);
 }
 
 static void initialise_ui(void) {
