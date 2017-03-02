@@ -10,4 +10,4 @@ Special thanks to [Joel Crane](https://twitter.com/Potato_Fi) for the app and th
 
 If you have any suggestions for Pulse Alert or a part of the app isn't working for you, you can open a Github issue or contact me directly.
 
-[![Pulse Alert | App](http://pblweb.com/badge/586a9a9fe09e637c8c0003a7/black/small)](https://apps.getpebble.com/en_US/application/586a9a9fe09e637c8c0003a7)
+[Pulse Alert | Pebble App Store](https://apps.getpebble.com/en_US/application/586a9a9fe09e637c8c0003a7)
